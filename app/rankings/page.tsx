@@ -5,6 +5,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useSettings } from "@/hooks/useSettings";
 import { calcPlayerRecords, calcPairRecords } from "@/lib/aggregation";
 import { EkibyoCard } from "@/components/ui/EkibyoCard";
+import { TitleCards } from "@/components/ui/TitleCards";
 import type { PlayerRecord } from "@/types";
 
 function pct(n: number) { return (n * 100).toFixed(1) + "%"; }
@@ -83,6 +84,13 @@ export default function RankingsPage() {
 
       {/* 疫病神カード */}
       <EkibyoCard
+        records={allRecords}
+        players={players}
+        minMatches={minMatches}
+      />
+
+      {/* 称号カード */}
+      <TitleCards
         records={allRecords}
         players={players}
         minMatches={minMatches}
