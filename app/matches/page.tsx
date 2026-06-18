@@ -59,22 +59,26 @@ export default function MatchesPage() {
                 {/* サマリー行 */}
                 <button
                   onClick={() => toggle(m.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800/60 transition-colors text-left"
+                  className="w-full px-4 py-3 hover:bg-gray-800/60 transition-colors text-left space-y-1.5"
                 >
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-900 text-green-300 flex-shrink-0">
-                    WIN
-                  </span>
-                  <span className="flex-1 text-sm text-white">
-                    {m.winners.map((id) => name(id)).join(" & ")}
-                    <span className="text-gray-500 text-xs mx-1.5">vs</span>
-                    {m.losers.map((id) => name(id)).join(" & ")}
-                  </span>
-                  <span className="text-sm font-bold text-white">
-                    {winGoals} – {loseGoals}
-                  </span>
-                  <span className="text-gray-500 text-xs ml-1 flex-shrink-0">
-                    {m.date} {isOpen ? "▾" : "▸"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-900 text-green-300 flex-shrink-0">勝</span>
+                    <span className="text-sm text-green-400 font-medium flex-1">
+                      {m.winners.map((id) => name(id)).join(" & ")}
+                    </span>
+                    <span className="text-sm font-bold text-white">
+                      <span className="text-green-400">{winGoals}</span>
+                      <span className="text-gray-500 mx-1">–</span>
+                      <span className="text-red-400">{loseGoals}</span>
+                    </span>
+                    <span className="text-gray-500 text-xs flex-shrink-0">{m.date} {isOpen ? "▾" : "▸"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-950 text-red-400 flex-shrink-0">敗</span>
+                    <span className="text-sm text-red-400">
+                      {m.losers.map((id) => name(id)).join(" & ")}
+                    </span>
+                  </div>
                 </button>
 
                 {/* 詳細 */}
@@ -83,7 +87,7 @@ export default function MatchesPage() {
                     {/* 勝チーム */}
                     <div>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-900 text-green-300">
-                        WIN · {m.winners.map((id) => name(id)).join(" & ")}
+                        勝 · {m.winners.map((id) => name(id)).join(" & ")}
                       </span>
                       <div className="mt-2 space-y-2">
                         {m.winners.map((id) => {
@@ -116,7 +120,7 @@ export default function MatchesPage() {
                     {/* 敗チーム */}
                     <div>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-950 text-red-400">
-                        LOSE · {m.losers.map((id) => name(id)).join(" & ")}
+                        敗 · {m.losers.map((id) => name(id)).join(" & ")}
                       </span>
                       <div className="mt-2 space-y-2">
                         {m.losers.map((id) => {
