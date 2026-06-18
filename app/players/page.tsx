@@ -4,12 +4,17 @@ import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 
 export default function PlayersPage() {
-  const { players, activePlayers, loading, addPlayer, deactivatePlayer, renamePlayer, exportData, importData, matches } = useApp();
+  const { players, loading, addPlayer, deactivatePlayer, deletePlayer, confirmDeletePlayer, renamePlayer, exportData, importData, matches } = useApp();
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    id: string;
+    name: string;
+    matchCount: number;
+  } | null>(null);
 
   async function handleAdd() {
     const trimmed = newName.trim();
@@ -45,8 +50,26 @@ export default function PlayersPage() {
   }
 
   async function handleDeactivate(id: string, name: string) {
-    if (!confirm(`「${name}」を非表示にしますか？\n過去の試合記録は残ります。`)) return;
+    if (!confirm(`「${name}」を非表示にしますか？\n過去の試合記録は集計に残ります。`)) return;
     await deactivatePlayer(id);
+  }
+
+  async function handleDeleteClick(id: string, name: string) {
+    const { matchCount } = await deletePlayer(id);
+    setDeleteDialog({ id, name, matchCount });
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteDialog) return;
+    setSaving(true);
+    try {
+      await confirmDeletePlayer(deleteDialog.id);
+      setDeleteDialog(null);
+    } catch {
+      alert("削除に失敗しました");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -74,6 +97,42 @@ export default function PlayersPage() {
 
   return (
     <div className="space-y-6">
+      {/* 削除確認ダイアログ */}
+      {deleteDialog && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-sm w-full space-y-4">
+            <h2 className="text-lg font-bold text-red-400">プレイヤーを削除</h2>
+            <p className="text-white">
+              「<span className="font-bold">{deleteDialog.name}</span>」を完全に削除しますか？
+            </p>
+            {deleteDialog.matchCount > 0 ? (
+              <div className="bg-red-950/50 border border-red-700 rounded-lg p-3 text-sm text-red-300 space-y-1">
+                <p className="font-bold">⚠️ 警告</p>
+                <p>このプレイヤーは <span className="font-bold">{deleteDialog.matchCount}試合</span> に出場しています。</p>
+                <p>削除すると関連する試合データも全て消えます。この操作は取り消せません。</p>
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">このプレイヤーの試合記録はありません。この操作は取り消せません。</p>
+            )}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setDeleteDialog(null)}
+                className="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={saving}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-lg font-bold transition-colors"
+              >
+                {saving ? "削除中..." : "削除する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">プレイヤー管理</h1>
         <div className="flex gap-2">
@@ -171,11 +230,17 @@ export default function PlayersPage() {
                       {p.active && (
                         <button
                           onClick={() => handleDeactivate(p.id, p.name)}
-                          className="text-red-500 hover:text-red-400 text-sm"
+                          className="text-yellow-500 hover:text-yellow-400 text-sm"
                         >
                           非表示
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDeleteClick(p.id, p.name)}
+                        className="text-red-500 hover:text-red-400 text-sm"
+                      >
+                        削除
+                      </button>
                     </div>
                   </td>
                 </tr>

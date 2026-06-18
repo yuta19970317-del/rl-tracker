@@ -36,6 +36,27 @@ export async function deactivatePlayer(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function countPlayerMatches(id: string): Promise<number> {
+  const { count, error } = await db()
+    .from("matches")
+    .select("*", { count: "exact", head: true })
+    .or(`winner1_id.eq.${id},winner2_id.eq.${id},loser1_id.eq.${id},loser2_id.eq.${id}`);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function deletePlayerWithMatches(id: string): Promise<void> {
+  // 関連する試合を削除（match_playersはON DELETE CASCADEで自動削除）
+  const { error: matchError } = await db()
+    .from("matches")
+    .delete()
+    .or(`winner1_id.eq.${id},winner2_id.eq.${id},loser1_id.eq.${id},loser2_id.eq.${id}`);
+  if (matchError) throw matchError;
+
+  const { error: playerError } = await db().from("players").delete().eq("id", id);
+  if (playerError) throw playerError;
+}
+
 // ---- Matches ----
 
 export async function fetchMatches(): Promise<Match[]> {

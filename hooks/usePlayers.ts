@@ -6,6 +6,8 @@ import {
   insertPlayer,
   updatePlayerName,
   deactivatePlayer as dbDeactivatePlayer,
+  countPlayerMatches,
+  deletePlayerWithMatches,
 } from "@/lib/db";
 import type { Player } from "@/types";
 
@@ -38,8 +40,18 @@ export function usePlayers() {
     );
   }, []);
 
+  const deletePlayer = useCallback(async (id: string): Promise<{ matchCount: number }> => {
+    const matchCount = await countPlayerMatches(id);
+    return { matchCount };
+  }, []);
+
+  const confirmDeletePlayer = useCallback(async (id: string) => {
+    await deletePlayerWithMatches(id);
+    setPlayers((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   // 試合選択用：activeなプレイヤーのみ
   const activePlayers = players.filter((p) => p.active);
 
-  return { players, activePlayers, loading, addPlayer, deactivatePlayer, renamePlayer };
+  return { players, activePlayers, loading, addPlayer, deactivatePlayer, deletePlayer, confirmDeletePlayer, renamePlayer };
 }
