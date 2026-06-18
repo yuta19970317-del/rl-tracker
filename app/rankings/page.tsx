@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useSettings } from "@/hooks/useSettings";
 import { calcPlayerRecords, calcPairRecords } from "@/lib/aggregation";
+import { EkibyoCard } from "@/components/ui/EkibyoCard";
 import type { PlayerRecord } from "@/types";
 
 function pct(n: number) { return (n * 100).toFixed(1) + "%"; }
@@ -79,6 +80,13 @@ export default function RankingsPage() {
       </div>
 
       {loading && <p className="text-gray-500">読み込み中...</p>}
+
+      {/* 疫病神カード */}
+      <EkibyoCard
+        records={allRecords}
+        players={players}
+        minMatches={minMatches}
+      />
 
       {/* 個人勝率 */}
       <section>
