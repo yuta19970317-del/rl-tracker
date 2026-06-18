@@ -1,16 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
 
 export default function MatchesPage() {
   const { players, matches, loading, deleteMatch } = useApp();
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   const name = (id: string) => players.find((p) => p.id === id)?.name ?? "?";
 
   const sorted = [...matches].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+
+  function toggle(id: string) {
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   async function handleDelete(id: string) {
     if (!confirm("この試合記録を削除しますか？\nこの操作は取り消せません。")) return;
@@ -38,67 +48,115 @@ export default function MatchesPage() {
       ) : sorted.length === 0 ? (
         <p className="text-gray-500 py-8 text-center">試合記録がありません</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {sorted.map((m) => {
-            const winnerStats = m.winners.map(
-              (id) => m.stats.find((s) => s.playerId === id)
-            );
-            const loserStats = m.losers.map(
-              (id) => m.stats.find((s) => s.playerId === id)
-            );
+            const isOpen = openIds.has(m.id);
+            const winGoals = m.winners.reduce((s, id) => s + (m.stats.find((st) => st.playerId === id)?.goals ?? 0), 0);
+            const loseGoals = m.losers.reduce((s, id) => s + (m.stats.find((st) => st.playerId === id)?.goals ?? 0), 0);
+
             return (
-              <div key={m.id} className="bg-gray-900 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-gray-400 text-sm">{m.date}</span>
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/matches/${m.id}/edit`}
-                      className="text-gray-400 hover:text-white text-sm"
-                    >
-                      編集
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(m.id)}
-                      className="text-red-500 hover:text-red-400 text-sm"
-                    >
-                      削除
-                    </button>
+              <div key={m.id} className="bg-gray-900 rounded-xl overflow-hidden">
+                {/* サマリー行 */}
+                <button
+                  onClick={() => toggle(m.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800/60 transition-colors text-left"
+                >
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-900 text-green-300 flex-shrink-0">
+                    WIN
+                  </span>
+                  <span className="flex-1 text-sm text-white">
+                    {m.winners.map((id) => name(id)).join(" & ")}
+                    <span className="text-gray-500 text-xs mx-1.5">vs</span>
+                    {m.losers.map((id) => name(id)).join(" & ")}
+                  </span>
+                  <span className="text-sm font-bold text-white">
+                    {winGoals} – {loseGoals}
+                  </span>
+                  <span className="text-gray-500 text-xs ml-1 flex-shrink-0">
+                    {m.date} {isOpen ? "▾" : "▸"}
+                  </span>
+                </button>
+
+                {/* 詳細 */}
+                {isOpen && (
+                  <div className="border-t border-gray-800 px-4 pb-4 pt-3 space-y-3">
+                    {/* 勝チーム */}
+                    <div>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-900 text-green-300">
+                        WIN · {m.winners.map((id) => name(id)).join(" & ")}
+                      </span>
+                      <div className="mt-2 space-y-2">
+                        {m.winners.map((id) => {
+                          const st = m.stats.find((s) => s.playerId === id);
+                          return (
+                            <div key={id}>
+                              <div className="text-xs text-gray-400 mb-1">{name(id)}</div>
+                              <div className="grid grid-cols-5 gap-1.5">
+                                {[
+                                  { label: "得点", value: st?.score ?? 0 },
+                                  { label: "ゴール", value: st?.goals ?? 0, green: true },
+                                  { label: "アシスト", value: st?.assists ?? 0 },
+                                  { label: "セーブ", value: st?.saves ?? 0 },
+                                  { label: "シュート", value: st?.shots ?? 0 },
+                                ].map(({ label, value, green }) => (
+                                  <div key={label} className="bg-gray-800 rounded p-1.5 text-center">
+                                    <div className="text-gray-500 text-[9px]">{label}</div>
+                                    <div className={`text-xs font-bold ${green ? "text-green-400" : "text-white"}`}>{value}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-800" />
+
+                    {/* 敗チーム */}
+                    <div>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-950 text-red-400">
+                        LOSE · {m.losers.map((id) => name(id)).join(" & ")}
+                      </span>
+                      <div className="mt-2 space-y-2">
+                        {m.losers.map((id) => {
+                          const st = m.stats.find((s) => s.playerId === id);
+                          return (
+                            <div key={id}>
+                              <div className="text-xs text-gray-400 mb-1">{name(id)}</div>
+                              <div className="grid grid-cols-5 gap-1.5">
+                                {[
+                                  { label: "得点", value: st?.score ?? 0 },
+                                  { label: "ゴール", value: st?.goals ?? 0, red: true },
+                                  { label: "アシスト", value: st?.assists ?? 0 },
+                                  { label: "セーブ", value: st?.saves ?? 0 },
+                                  { label: "シュート", value: st?.shots ?? 0 },
+                                ].map(({ label, value, red }) => (
+                                  <div key={label} className="bg-gray-800 rounded p-1.5 text-center">
+                                    <div className="text-gray-500 text-[9px]">{label}</div>
+                                    <div className={`text-xs font-bold ${red ? "text-red-400" : "text-white"}`}>{value}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {m.memo && (
+                      <p className="text-sm text-gray-500 border-t border-gray-800 pt-2">{m.memo}</p>
+                    )}
+
+                    <div className="flex gap-4 justify-end border-t border-gray-800 pt-2">
+                      <Link href={`/matches/${m.id}/edit`} className="text-sm text-gray-400 hover:text-white">
+                        編集
+                      </Link>
+                      <button onClick={() => handleDelete(m.id)} className="text-sm text-red-500 hover:text-red-400">
+                        削除
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-bold text-blue-400">WIN</div>
-                    {m.winners.map((id, i) => {
-                      const st = winnerStats[i];
-                      return (
-                        <div key={id} className="text-sm">
-                          <span className="font-medium text-white">{name(id)}</span>
-                          <div className="text-gray-400 text-xs mt-0.5">
-                            得点:{st?.score ?? 0} G:{st?.goals ?? 0} A:{st?.assists ?? 0} Sv:{st?.saves ?? 0} Sh:{st?.shots ?? 0}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-bold text-red-400">LOSE</div>
-                    {m.losers.map((id, i) => {
-                      const st = loserStats[i];
-                      return (
-                        <div key={id} className="text-sm">
-                          <span className="font-medium text-white">{name(id)}</span>
-                          <div className="text-gray-400 text-xs mt-0.5">
-                            得点:{st?.score ?? 0} G:{st?.goals ?? 0} A:{st?.assists ?? 0} Sv:{st?.saves ?? 0} Sh:{st?.shots ?? 0}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {m.memo && (
-                  <p className="mt-2 text-sm text-gray-500 border-t border-gray-800 pt-2">
-                    {m.memo}
-                  </p>
                 )}
               </div>
             );
