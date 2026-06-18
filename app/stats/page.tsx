@@ -3,11 +3,19 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { calcPlayerRecords } from "@/lib/aggregation";
-import { StatCard } from "@/components/ui/StatCard";
 
 function fmt(n: number, d = 2) { return n.toFixed(d); }
 function pct(n: number) { return (n * 100).toFixed(1) + "%"; }
 function shotRateFmt(n: number) { return n === 0 ? "-" : pct(n); }
+
+function StatCell({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="bg-gray-800 rounded-lg p-3 text-center">
+      <div className="text-gray-500 text-xs mb-1">{label}</div>
+      <div className={`text-lg font-bold ${color ?? "text-white"}`}>{value}</div>
+    </div>
+  );
+}
 
 export default function StatsPage() {
   const { players, matches, loading } = useApp();
@@ -15,6 +23,8 @@ export default function StatsPage() {
 
   const records = calcPlayerRecords(matches, players);
   const record = records.find((r) => r.playerId === selectedId);
+  const player = players.find((p) => p.id === selectedId);
+  const initials = player?.name?.slice(0, 1) ?? "";
 
   return (
     <div className="space-y-6">
@@ -36,34 +46,46 @@ export default function StatsPage() {
 
       {loading && <p className="text-gray-500">読み込み中...</p>}
 
-      {record && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatCard label="試合数" value={record.matches} />
-            <StatCard label="勝利" value={record.wins} />
-            <StatCard label="敗北" value={record.losses} />
-            <StatCard label="勝率" value={pct(record.winRate)} />
+      {record && player && (
+        <div className="bg-gray-900 rounded-xl p-5 space-y-4">
+          {/* プロフィール行 */}
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-green-700 flex items-center justify-center text-green-100 text-xl font-bold flex-shrink-0">
+              {initials}
+            </div>
+            <div>
+              <div className="text-white text-lg font-bold">{player.name}</div>
+              <div className="text-gray-400 text-sm">{record.matches}試合 · {record.wins}勝 {record.losses}敗</div>
+            </div>
+            <div className="ml-auto text-right">
+              <div className="text-3xl font-bold text-green-400">{pct(record.winRate)}</div>
+              <div className="text-gray-500 text-xs">勝率</div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <StatCard label="ゴール差" value={record.goalDiff > 0 ? `+${record.goalDiff}` : record.goalDiff} />
-            <StatCard label="個人得点" value={record.totalScore} />
-            <StatCard label="ゴール" value={record.totalGoals} />
+          {/* 勝率ゲージ */}
+          <div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>勝率</span><span>{pct(record.winRate)}</span>
+            </div>
+            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-full transition-all"
+                style={{ width: `${(record.winRate * 100).toFixed(1)}%` }}
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatCard label="アシスト" value={record.totalAssists} />
-            <StatCard label="セーブ" value={record.totalSaves} />
-            <StatCard label="シュート" value={record.totalShots} />
-            <StatCard label="シュート決定率" value={shotRateFmt(record.shotRate)} />
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <StatCard label="平均得点" value={fmt(record.avgScore)} />
-            <StatCard label="平均ゴール" value={fmt(record.avgGoals)} />
-            <StatCard label="平均アシスト" value={fmt(record.avgAssists)} />
-            <StatCard label="平均セーブ" value={fmt(record.avgSaves)} />
-            <StatCard label="平均シュート" value={fmt(record.avgShots)} />
+          {/* スタッツグリッド */}
+          <div className="grid grid-cols-4 gap-2">
+            <StatCell label="平均得点" value={fmt(record.avgScore)} />
+            <StatCell label="平均ゴール" value={fmt(record.avgGoals)} color="text-green-400" />
+            <StatCell label="平均アシスト" value={fmt(record.avgAssists)} color="text-blue-400" />
+            <StatCell label="平均セーブ" value={fmt(record.avgSaves)} />
+            <StatCell label="平均シュート" value={fmt(record.avgShots)} />
+            <StatCell label="決定率" value={shotRateFmt(record.shotRate)} color="text-green-400" />
+            <StatCell label="ゴール差" value={record.goalDiff > 0 ? `+${record.goalDiff}` : record.goalDiff} color={record.goalDiff > 0 ? "text-green-400" : record.goalDiff < 0 ? "text-red-400" : "text-gray-400"} />
+            <StatCell label="試合数" value={record.matches} />
           </div>
         </div>
       )}
