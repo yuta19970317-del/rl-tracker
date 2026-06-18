@@ -3,6 +3,7 @@ export type Player = {
   name: string;
   active: boolean;
   createdAt: string;
+  avatarUrl?: string;
 };
 
 export type PlayerStats = {

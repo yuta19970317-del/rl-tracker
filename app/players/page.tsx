@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 
 export default function PlayersPage() {
-  const { players, loading, addPlayer, deactivatePlayer, deletePlayer, confirmDeletePlayer, renamePlayer, exportData, importData, matches } = useApp();
+  const { players, loading, addPlayer, deactivatePlayer, deletePlayer, confirmDeletePlayer, renamePlayer, updateAvatar, deleteAvatar, exportData, importData, matches } = useApp();
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{
     id: string;
     name: string;
@@ -57,6 +58,20 @@ export default function PlayersPage() {
   async function handleDeleteClick(id: string, name: string) {
     const { matchCount } = await deletePlayer(id);
     setDeleteDialog({ id, name, matchCount });
+  }
+
+  async function handleAvatarChange(id: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(id);
+    try {
+      await updateAvatar(id, file);
+    } catch {
+      alert("画像のアップロードに失敗しました");
+    } finally {
+      setAvatarUploading(null);
+      e.target.value = "";
+    }
   }
 
   async function handleDeleteConfirm() {
@@ -195,25 +210,61 @@ export default function PlayersPage() {
               {players.map((p) => (
                 <tr key={p.id} className={`hover:bg-gray-800/50 ${!p.active ? "opacity-40" : ""}`}>
                   <td className="px-4 py-3">
-                    {editingId === p.id ? (
-                      <div className="flex gap-2 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      {/* アバター */}
+                      <label className="relative cursor-pointer flex-shrink-0 group">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-700 group-hover:border-orange-400 transition-colors">
+                          {p.avatarUrl ? (
+                            <img src={p.avatarUrl} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-gray-400 text-sm font-bold">
+                              {p.name.slice(0, 1)}
+                            </div>
+                          )}
+                        </div>
+                        {avatarUploading === p.id && (
+                          <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                            <span className="text-[9px] text-white">...</span>
+                          </div>
+                        )}
                         <input
-                          type="text"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleRename(p.id)}
-                          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-orange-400"
-                          autoFocus
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleAvatarChange(p.id, e)}
                         />
-                        <button onClick={() => handleRename(p.id)} className="text-orange-400 text-sm">保存</button>
-                        <button onClick={() => setEditingId(null)} className="text-gray-400 text-sm">キャンセル</button>
-                      </div>
-                    ) : (
-                      <span className="font-medium">
-                        {p.name}
-                        {!p.active && <span className="ml-2 text-xs text-gray-500">（非表示）</span>}
-                      </span>
-                    )}
+                      </label>
+                      {/* 名前 */}
+                      {editingId === p.id ? (
+                        <div className="flex gap-2 flex-wrap">
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleRename(p.id)}
+                            className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:border-orange-400"
+                            autoFocus
+                          />
+                          <button onClick={() => handleRename(p.id)} className="text-orange-400 text-sm">保存</button>
+                          <button onClick={() => setEditingId(null)} className="text-gray-400 text-sm">キャンセル</button>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="font-medium">
+                            {p.name}
+                            {!p.active && <span className="ml-2 text-xs text-gray-500">（非表示）</span>}
+                          </span>
+                          {p.avatarUrl && (
+                            <button
+                              onClick={() => deleteAvatar(p.id)}
+                              className="ml-2 text-[10px] text-gray-600 hover:text-red-400"
+                            >
+                              画像削除
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right text-gray-400">{matchCount(p.id)}</td>
                   <td className="px-4 py-3 text-right text-gray-500 text-sm hidden sm:table-cell">

@@ -89,10 +89,30 @@ export function TitleCards({ records, players, minMatches }: Props) {
             key={def.title}
             className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex-shrink-0 min-w-[112px]"
           >
-            <div className="text-lg mb-1">{def.icon}</div>
-            <div className="text-xs text-gray-400 mb-2">{def.title}</div>
+            {/* アバター or アイコン */}
+            <div className="flex gap-1.5 mb-2">
+              {winners.map((r) => {
+                const player = players.find((p) => p.id === r.playerId);
+                return player?.avatarUrl ? (
+                  <img
+                    key={r.playerId}
+                    src={player.avatarUrl}
+                    alt={player.name}
+                    className="w-9 h-9 rounded-full object-cover border-2 border-gray-700"
+                  />
+                ) : (
+                  <div
+                    key={r.playerId}
+                    className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center text-base"
+                  >
+                    {def.icon}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-xs text-gray-400 mb-1">{def.title}</div>
             {isTie && (
-              <div className="text-[10px] text-gray-600 mb-1">同率</div>
+              <div className="text-[10px] text-gray-600 mb-0.5">同率</div>
             )}
             <div className="space-y-0.5 mb-1">
               {winners.map((r) => (

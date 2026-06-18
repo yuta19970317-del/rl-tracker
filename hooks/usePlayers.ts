@@ -8,6 +8,8 @@ import {
   deactivatePlayer as dbDeactivatePlayer,
   countPlayerMatches,
   deletePlayerWithMatches,
+  uploadPlayerAvatar,
+  removePlayerAvatar,
 } from "@/lib/db";
 import type { Player } from "@/types";
 
@@ -50,8 +52,18 @@ export function usePlayers() {
     setPlayers((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  const updateAvatar = useCallback(async (id: string, file: File) => {
+    const url = await uploadPlayerAvatar(id, file);
+    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, avatarUrl: url } : p)));
+  }, []);
+
+  const deleteAvatar = useCallback(async (id: string) => {
+    await removePlayerAvatar(id);
+    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, avatarUrl: undefined } : p)));
+  }, []);
+
   // 試合選択用：activeなプレイヤーのみ
   const activePlayers = players.filter((p) => p.active);
 
-  return { players, activePlayers, loading, addPlayer, deactivatePlayer, deletePlayer, confirmDeletePlayer, renamePlayer };
+  return { players, activePlayers, loading, addPlayer, deactivatePlayer, deletePlayer, confirmDeletePlayer, renamePlayer, updateAvatar, deleteAvatar };
 }

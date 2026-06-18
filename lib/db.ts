@@ -31,6 +31,28 @@ export async function updatePlayerName(id: string, name: string): Promise<void> 
   if (error) throw error;
 }
 
+export async function uploadPlayerAvatar(playerId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${playerId}.${ext}`;
+  const { error: upError } = await db().storage.from("avatars").upload(path, file, { upsert: true });
+  if (upError) throw upError;
+  const { data } = db().storage.from("avatars").getPublicUrl(path);
+  const url = data.publicUrl + "?t=" + Date.now();
+  const { error: dbError } = await db().from("players").update({ avatar_url: url }).eq("id", playerId);
+  if (dbError) throw dbError;
+  return url;
+}
+
+export async function removePlayerAvatar(playerId: string): Promise<void> {
+  const { data: player } = await db().from("players").select("avatar_url").eq("id", playerId).single();
+  if (player?.avatar_url) {
+    const path = player.avatar_url.split("/avatars/")[1]?.split("?")[0];
+    if (path) await db().storage.from("avatars").remove([path]);
+  }
+  const { error } = await db().from("players").update({ avatar_url: null }).eq("id", playerId);
+  if (error) throw error;
+}
+
 export async function deactivatePlayer(id: string): Promise<void> {
   const { error } = await db().from("players").update({ active: false }).eq("id", id);
   if (error) throw error;
@@ -239,6 +261,7 @@ function rowToPlayer(row: Record<string, unknown>): Player {
     name: row.name as string,
     active: row.active as boolean,
     createdAt: row.created_at as string,
+    avatarUrl: (row.avatar_url as string) ?? undefined,
   };
 }
 
