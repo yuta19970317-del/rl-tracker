@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { AvatarCropModal } from "@/components/ui/AvatarCropModal";
 
 export default function PlayersPage() {
   const { players, loading, addPlayer, deactivatePlayer, deletePlayer, confirmDeletePlayer, renamePlayer, updateAvatar, deleteAvatar, exportData, importData, matches } = useApp();
@@ -11,6 +12,7 @@ export default function PlayersPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<{ playerId: string; src: string } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{
     id: string;
     name: string;
@@ -60,17 +62,25 @@ export default function PlayersPage() {
     setDeleteDialog({ id, name, matchCount });
   }
 
-  async function handleAvatarChange(id: string, e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setAvatarUploading(id);
+    const src = URL.createObjectURL(file);
+    setCropTarget({ playerId: id, src });
+    e.target.value = "";
+  }
+
+  async function handleCropSave(blob: Blob) {
+    if (!cropTarget) return;
+    setAvatarUploading(cropTarget.playerId);
+    setCropTarget(null);
     try {
-      await updateAvatar(id, file);
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+      await updateAvatar(cropTarget.playerId, file);
     } catch {
       alert("画像のアップロードに失敗しました");
     } finally {
       setAvatarUploading(null);
-      e.target.value = "";
     }
   }
 
@@ -112,6 +122,15 @@ export default function PlayersPage() {
 
   return (
     <div className="space-y-6">
+      {/* アバタートリミングモーダル */}
+      {cropTarget && (
+        <AvatarCropModal
+          imageSrc={cropTarget.src}
+          onCancel={() => setCropTarget(null)}
+          onSave={handleCropSave}
+        />
+      )}
+
       {/* 削除確認ダイアログ */}
       {deleteDialog && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
