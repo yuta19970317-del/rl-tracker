@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/contexts/AppContext";
 import { calcPlayerRecords } from "@/lib/aggregation";
 
@@ -18,8 +19,17 @@ function StatCell({ label, value, color }: { label: string; value: string | numb
 }
 
 export default function StatsPage() {
+  return (
+    <Suspense fallback={<p className="text-gray-500">読み込み中...</p>}>
+      <StatsContent />
+    </Suspense>
+  );
+}
+
+function StatsContent() {
   const { players, matches, loading } = useApp();
-  const [selectedId, setSelectedId] = useState("");
+  const searchParams = useSearchParams();
+  const [selectedId, setSelectedId] = useState(searchParams.get("player") ?? "");
 
   const records = calcPlayerRecords(matches, players);
   const record = records.find((r) => r.playerId === selectedId);
@@ -50,8 +60,10 @@ export default function StatsPage() {
         <div className="bg-gray-900 rounded-xl p-5 space-y-4">
           {/* プロフィール行 */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-green-700 flex items-center justify-center text-green-100 text-xl font-bold flex-shrink-0">
-              {initials}
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-green-700 flex items-center justify-center text-green-100 text-xl font-bold flex-shrink-0">
+              {player.avatarUrl
+                ? <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
+                : initials}
             </div>
             <div>
               <div className="text-white text-lg font-bold">{player.name}</div>

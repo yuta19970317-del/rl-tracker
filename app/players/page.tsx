@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
 import { AvatarCropModal } from "@/components/ui/AvatarCropModal";
 
@@ -269,10 +270,13 @@ export default function PlayersPage() {
                         </div>
                       ) : (
                         <div>
-                          <span className="font-medium">
+                          <Link
+                            href={`/stats?player=${p.id}`}
+                            className="font-medium hover:text-orange-400 transition-colors"
+                          >
                             {p.name}
                             {!p.active && <span className="ml-2 text-xs text-gray-500">（非表示）</span>}
-                          </span>
+                          </Link>
                           {p.avatarUrl && (
                             <button
                               onClick={() => deleteAvatar(p.id)}
