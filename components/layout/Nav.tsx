@@ -10,6 +10,7 @@ const links = [
   { href: "/stats", label: "個人成績" },
   { href: "/pairs", label: "ペア成績" },
   { href: "/rankings", label: "ランキング" },
+  { href: "/updates", label: "更新履歴" },
 ];
 
 export function Nav() {
