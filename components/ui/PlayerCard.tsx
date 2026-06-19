@@ -291,19 +291,19 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
   const pct = (n: number) => (n * 100).toFixed(1) + "%";
 
   return (
-    <article
-      style={cardStyle}
-      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-black/60 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-[var(--accent-ring)] hover:shadow-[0_0_45px_-8px_var(--accent-glow)]"
-    >
-      {/* Background art */}
+    <div style={cardStyle} className="relative">
+      {/* Background art — extends beyond card boundaries */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{ color: "var(--accent)" }}
+        className="pointer-events-none absolute"
+        style={{ inset: "-80px", color: "var(--accent)", zIndex: 0 }}
       >
         <CardBackground titleKey={player.titleKey} />
       </div>
 
+      <article
+        className="group relative z-10 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-black/60 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-[var(--accent-ring)] hover:shadow-[0_0_45px_-8px_var(--accent-glow)]"
+      >
       {/* Ambient glow */}
       <div
         aria-hidden="true"
@@ -391,6 +391,7 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
           />
         </div>
       </div>
-    </article>
+      </article>
+    </div>
   );
 }
