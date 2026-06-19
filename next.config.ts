@@ -1,12 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals = [...(config.externals ?? []), "tesseract.js"];
-    }
-    return config;
-  },
+  serverExternalPackages: ["tesseract.js"],
 };
 
 export default nextConfig;
