@@ -270,13 +270,10 @@ export default function PlayersPage() {
                         </div>
                       ) : (
                         <div>
-                          <Link
-                            href={`/stats?player=${p.id}`}
-                            className="font-medium hover:text-orange-400 transition-colors"
-                          >
+                          <span className="font-medium">
                             {p.name}
                             {!p.active && <span className="ml-2 text-xs text-gray-500">（非表示）</span>}
-                          </Link>
+                          </span>
                           {p.avatarUrl && (
                             <button
                               onClick={() => deleteAvatar(p.id)}
@@ -295,6 +292,12 @@ export default function PlayersPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-3">
+                      <Link
+                        href={`/stats?player=${p.id}`}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition-colors"
+                      >
+                        📊 成績
+                      </Link>
                       <button
                         onClick={() => { setEditingId(p.id); setEditingName(p.name); }}
                         className="text-gray-400 hover:text-white text-sm"

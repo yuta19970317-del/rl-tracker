@@ -4,10 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/players", label: "プレイヤー" },
+  { href: "/players", label: "プレイヤー・個人成績" },
   { href: "/matches/new", label: "試合入力" },
   { href: "/matches", label: "試合一覧" },
-  { href: "/stats", label: "個人成績" },
   { href: "/pairs", label: "ペア成績" },
   { href: "/rankings", label: "ランキング" },
   { href: "/updates", label: "更新履歴" },
