@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { PlayerAvatar } from "@/components/ui/PlayerAvatar";
 import { useSettings } from "@/hooks/useSettings";
 import { calcPlayerRecords, calcPairRecords } from "@/lib/aggregation";
 import { EkibyoCard } from "@/components/ui/EkibyoCard";
@@ -50,6 +51,7 @@ export default function RankingsPage() {
   const filteredPairs = pairRecords.filter((r) => r.matches >= minMatches);
 
   const name = (id: string) => players.find((p) => p.id === id)?.name ?? "?";
+  const player = (id: string) => players.find((p) => p.id === id);
 
   const byWinRate = [...records].sort((a, b) => b.winRate - a.winRate || b.matches - a.matches);
   const byPairWinRate = [...filteredPairs].sort((a, b) => b.winRate - a.winRate || b.matches - a.matches);
@@ -117,7 +119,12 @@ export default function RankingsPage() {
                 {byWinRate.map((r, i) => (
                   <tr key={r.playerId} className="hover:bg-gray-800/50">
                     <td className="px-4 py-3 text-center"><Medal rank={i + 1} /></td>
-                    <td className="px-4 py-3 font-medium">{name(r.playerId)}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-2">
+                        <PlayerAvatar name={name(r.playerId)} avatarUrl={player(r.playerId)?.avatarUrl} size={24} />
+                        {name(r.playerId)}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-right text-gray-400">{r.matches}</td>
                     <td className="px-4 py-3 text-right text-blue-400">{r.wins}</td>
                     <td className="px-4 py-3 text-right text-red-400">{r.losses}</td>
@@ -153,7 +160,19 @@ export default function RankingsPage() {
                 {byPairWinRate.map((r, i) => (
                   <tr key={r.pairKey} className="hover:bg-gray-800/50">
                     <td className="px-4 py-3 text-center"><Medal rank={i + 1} /></td>
-                    <td className="px-4 py-3 font-medium">{name(r.playerIds[0])} & {name(r.playerIds[1])}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <PlayerAvatar name={name(r.playerIds[0])} avatarUrl={player(r.playerIds[0])?.avatarUrl} size={24} />
+                          {name(r.playerIds[0])}
+                        </span>
+                        <span className="text-gray-500">&</span>
+                        <span className="flex items-center gap-1.5">
+                          <PlayerAvatar name={name(r.playerIds[1])} avatarUrl={player(r.playerIds[1])?.avatarUrl} size={24} />
+                          {name(r.playerIds[1])}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-right text-gray-400">{r.matches}</td>
                     <td className="px-4 py-3 text-right text-blue-400">{r.wins}</td>
                     <td className="px-4 py-3 text-right text-red-400">{r.losses}</td>

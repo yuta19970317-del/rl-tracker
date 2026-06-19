@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/contexts/AppContext";
+import { PlayerAvatar } from "@/components/ui/PlayerAvatar";
 
 export default function MatchesPage() {
   const { players, matches, loading, deleteMatch } = useApp();
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   const name = (id: string) => players.find((p) => p.id === id)?.name ?? "?";
+  const player = (id: string) => players.find((p) => p.id === id);
 
   const sorted = [...matches].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -63,8 +65,16 @@ export default function MatchesPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-900 text-green-300 flex-shrink-0">勝</span>
-                    <span className="text-sm text-green-400 font-medium flex-1">
-                      {m.winners.map((id) => name(id)).join(" & ")}
+                    <span className="flex items-center gap-1.5 flex-1 flex-wrap">
+                      {m.winners.map((id) => {
+                        const p = player(id);
+                        return (
+                          <span key={id} className="flex items-center gap-1">
+                            <PlayerAvatar name={name(id)} avatarUrl={p?.avatarUrl} size={20} />
+                            <span className="text-sm text-green-400 font-medium">{name(id)}</span>
+                          </span>
+                        );
+                      })}
                     </span>
                     <span className="text-sm font-bold text-white">
                       <span className="text-green-400">{winGoals}</span>
@@ -75,8 +85,16 @@ export default function MatchesPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-950 text-red-400 flex-shrink-0">敗</span>
-                    <span className="text-sm text-red-400">
-                      {m.losers.map((id) => name(id)).join(" & ")}
+                    <span className="flex items-center gap-1.5 flex-1 flex-wrap">
+                      {m.losers.map((id) => {
+                        const p = player(id);
+                        return (
+                          <span key={id} className="flex items-center gap-1">
+                            <PlayerAvatar name={name(id)} avatarUrl={p?.avatarUrl} size={20} />
+                            <span className="text-sm text-red-400">{name(id)}</span>
+                          </span>
+                        );
+                      })}
                     </span>
                   </div>
                 </button>
@@ -92,9 +110,13 @@ export default function MatchesPage() {
                       <div className="mt-2 space-y-2">
                         {m.winners.map((id) => {
                           const st = m.stats.find((s) => s.playerId === id);
+                          const p = player(id);
                           return (
                             <div key={id}>
-                              <div className="text-xs text-gray-400 mb-1">{name(id)}</div>
+                              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
+                                <PlayerAvatar name={name(id)} avatarUrl={p?.avatarUrl} size={18} />
+                                {name(id)}
+                              </div>
                               <div className="grid grid-cols-5 gap-1.5">
                                 {[
                                   { label: "得点", value: st?.score ?? 0 },
@@ -125,9 +147,13 @@ export default function MatchesPage() {
                       <div className="mt-2 space-y-2">
                         {m.losers.map((id) => {
                           const st = m.stats.find((s) => s.playerId === id);
+                          const p = player(id);
                           return (
                             <div key={id}>
-                              <div className="text-xs text-gray-400 mb-1">{name(id)}</div>
+                              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
+                                <PlayerAvatar name={name(id)} avatarUrl={p?.avatarUrl} size={18} />
+                                {name(id)}
+                              </div>
                               <div className="grid grid-cols-5 gap-1.5">
                                 {[
                                   { label: "得点", value: st?.score ?? 0 },

@@ -2,6 +2,7 @@
 
 import { useApp } from "@/contexts/AppContext";
 import { calcPairRecords } from "@/lib/aggregation";
+import { PlayerAvatar } from "@/components/ui/PlayerAvatar";
 
 function pct(n: number) { return (n * 100).toFixed(1) + "%"; }
 function shotRateFmt(n: number) { return n === 0 ? "-" : pct(n); }
@@ -13,6 +14,7 @@ export default function PairsPage() {
   const sorted = [...records].sort((a, b) => b.winRate - a.winRate);
 
   const name = (id: string) => players.find((p) => p.id === id)?.name ?? "?";
+  const player = (id: string) => players.find((p) => p.id === id);
 
   return (
     <div className="space-y-4">
@@ -44,7 +46,17 @@ export default function PairsPage() {
               {sorted.map((r) => (
                 <tr key={r.pairKey} className="hover:bg-gray-800/50">
                   <td className="px-4 py-3 font-medium whitespace-nowrap">
-                    {name(r.playerIds[0])} & {name(r.playerIds[1])}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1.5">
+                        <PlayerAvatar name={name(r.playerIds[0])} avatarUrl={player(r.playerIds[0])?.avatarUrl} size={22} />
+                        {name(r.playerIds[0])}
+                      </span>
+                      <span className="text-gray-500">&</span>
+                      <span className="flex items-center gap-1.5">
+                        <PlayerAvatar name={name(r.playerIds[1])} avatarUrl={player(r.playerIds[1])?.avatarUrl} size={22} />
+                        {name(r.playerIds[1])}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right text-gray-400">{r.matches}</td>
                   <td className="px-4 py-3 text-right text-blue-400">{r.wins}</td>
