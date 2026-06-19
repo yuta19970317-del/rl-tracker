@@ -1,6 +1,5 @@
 "use client";
 
-import { createWorker } from "tesseract.js";
 import type { Player } from "@/types";
 
 export type OcrPlayerResult = {
@@ -67,6 +66,7 @@ export async function recognizeScoreboard(
   onProgress?.(20);
 
   // 数字専用ワーカー（スタッツ列用）
+  const { createWorker } = await import("tesseract.js");
   const numWorker = await createWorker("eng", 1, {
     logger: (m) => {
       if (m.status === "recognizing text" && onProgress) {
