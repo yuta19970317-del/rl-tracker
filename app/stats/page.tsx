@@ -4,38 +4,59 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/contexts/AppContext";
 import { calcPlayerRecords } from "@/lib/aggregation";
+import { PlayerCard } from "@/components/ui/PlayerCard";
+import type { TitleKey, PlayerCardData } from "@/components/ui/PlayerCard";
 import type { PlayerRecord } from "@/types";
 
-function fmt(n: number, d = 2) { return n.toFixed(d); }
-function pct(n: number) { return (n * 100).toFixed(1) + "%"; }
+function getTitleKey(record: PlayerRecord, allRecords: PlayerRecord[]): TitleKey {
+  if (allRecords.length === 0) return "default";
 
-type Title = { label: string; emoji: string; color: string; bg: string };
-
-function getTitles(record: PlayerRecord, allRecords: PlayerRecord[]): Title[] {
-  const titles: Title[] = [];
-  if (allRecords.length === 0) return titles;
+  const active = allRecords.filter((r) => r.matches >= 1);
+  const minWin = active.length > 0 ? Math.min(...active.map((r) => r.winRate)) : Infinity;
+  if (record.winRate === minWin && active.length > 1 && record.matches >= 1) return "plague-god";
 
   const maxGoals = Math.max(...allRecords.map((r) => r.avgGoals));
   const maxWin = Math.max(...allRecords.map((r) => r.winRate));
   const maxSaves = Math.max(...allRecords.map((r) => r.avgSaves));
-  const maxShots = Math.max(...allRecords.map((r) => r.avgShots));
   const maxAssists = Math.max(...allRecords.map((r) => r.avgAssists));
   const maxShotRate = Math.max(...allRecords.filter((r) => r.avgShots > 0).map((r) => r.shotRate));
+  const maxShots = Math.max(...allRecords.map((r) => r.avgShots));
 
-  if (record.avgGoals === maxGoals && record.avgGoals > 0)
-    titles.push({ label: "ゴール王", emoji: "⚽", color: "#fbbf24", bg: "#78350f" });
-  if (record.winRate === maxWin && record.winRate > 0)
-    titles.push({ label: "勝率王", emoji: "👑", color: "#a78bfa", bg: "#3b0764" });
-  if (record.avgSaves === maxSaves && record.avgSaves > 0)
-    titles.push({ label: "守護神", emoji: "🛡️", color: "#60a5fa", bg: "#1e3a5f" });
-  if (record.shotRate === maxShotRate && record.avgShots > 0)
-    titles.push({ label: "決定力王", emoji: "⚡", color: "#fb923c", bg: "#431407" });
-  if (record.avgAssists === maxAssists && record.avgAssists > 0)
-    titles.push({ label: "アシスト王", emoji: "🎯", color: "#34d399", bg: "#064e3b" });
-  if (record.avgShots === maxShots && record.avgShots > 0)
-    titles.push({ label: "撃ちたがり", emoji: "🔥", color: "#f472b6", bg: "#500724" });
+  if (record.avgGoals === maxGoals && record.avgGoals > 0) return "goal-king";
+  if (record.winRate === maxWin && record.winRate > 0) return "win-rate-king";
+  if (record.avgSaves === maxSaves && record.avgSaves > 0) return "guardian";
+  if (record.avgAssists === maxAssists && record.avgAssists > 0) return "playmaker";
+  if (record.shotRate === maxShotRate && record.avgShots > 0) return "finisher";
+  if (record.avgShots === maxShots && record.avgShots > 0) return "spray-king";
+  return "default";
+}
 
-  return titles;
+function getTitleLabel(titleKey: TitleKey): string {
+  const map: Record<TitleKey, string> = {
+    "plague-god": "💀 疫病神",
+    "win-rate-king": "👑 勝率王",
+    "goal-king": "⚽ ゴール王",
+    guardian: "🛡️ 守護神",
+    playmaker: "🎯 アシスト王",
+    finisher: "⚡ 決定力王",
+    "spray-king": "🔥 撃ちたがり",
+    default: "",
+  };
+  return map[titleKey];
+}
+
+function getPlaystyle(titleKey: TitleKey): string {
+  const map: Record<TitleKey, string> = {
+    "plague-god": "疫病型",
+    "win-rate-king": "支配型",
+    "goal-king": "ストライカー",
+    guardian: "守護神",
+    playmaker: "プレイメーカー",
+    finisher: "決定力型",
+    "spray-king": "乱射型",
+    default: "バランス型",
+  };
+  return map[titleKey];
 }
 
 export default function StatsPage() {
@@ -54,7 +75,27 @@ function StatsContent() {
   const records = calcPlayerRecords(matches, players);
   const record = records.find((r) => r.playerId === selectedId);
   const player = players.find((p) => p.id === selectedId);
-  const titles = record ? getTitles(record, records) : [];
+
+  let cardData: PlayerCardData | null = null;
+  if (record && player) {
+    const titleKey = getTitleKey(record, records);
+    cardData = {
+      name: player.name,
+      titleLabel: getTitleLabel(titleKey),
+      titleKey,
+      avatarUrl: player.avatarUrl,
+      winRate: record.winRate,
+      matches: record.matches,
+      wins: record.wins,
+      losses: record.losses,
+      avgGoals: record.avgGoals,
+      avgAssists: record.avgAssists,
+      avgSaves: record.avgSaves,
+      avgShots: record.avgShots,
+      shotPct: record.shotRate * 100,
+      playstyle: getPlaystyle(titleKey),
+    };
+  }
 
   return (
     <div className="space-y-6 max-w-lg mx-auto">
@@ -76,81 +117,19 @@ function StatsContent() {
 
       {loading && <p className="text-gray-500">読み込み中...</p>}
 
-      {record && player && (
-        <div className="bg-gray-900 rounded-xl overflow-hidden">
-          {/* ヒーローバナー */}
-          <div className="bg-gray-950 px-5 py-7 flex flex-col items-center gap-4">
-            {/* アバター */}
-            <div className="w-24 h-24 rounded-full overflow-hidden border-[3px] border-orange-500 flex items-center justify-center bg-gray-800 text-orange-400 text-4xl font-bold flex-shrink-0">
-              {player.avatarUrl
-                ? <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
-                : player.name.slice(0, 1)}
-            </div>
+      {cardData && <PlayerCard player={cardData} />}
 
-            {/* 名前 */}
-            <div className="text-white text-xl font-bold">{player.name}</div>
-
-            {/* 称号バッジ */}
-            {titles.length > 0 && (
-              <div className="flex gap-2 flex-wrap justify-center">
-                {titles.map((t) => (
-                  <span
-                    key={t.label}
-                    className="text-xs font-bold px-3 py-1 rounded-full"
-                    style={{ background: t.bg, color: t.color }}
-                  >
-                    {t.emoji} {t.label}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* 勝敗サマリー */}
-            <div className="flex items-center gap-6 mt-1">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-400">{pct(record.winRate)}</div>
-                <div className="text-xs text-gray-500 mt-0.5">勝率</div>
-              </div>
-              <div className="w-px h-10 bg-gray-700" />
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{record.matches}</div>
-                <div className="text-xs text-gray-500 mt-0.5">試合</div>
-              </div>
-              <div className="w-px h-10 bg-gray-700" />
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{record.wins}勝</div>
-                <div className="text-xs text-gray-500 mt-0.5">{record.losses}敗</div>
-              </div>
-            </div>
-
-            {/* 勝率ゲージ */}
-            <div className="w-full max-w-xs">
-              <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 rounded-full transition-all"
-                  style={{ width: `${(record.winRate * 100).toFixed(1)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* スタッツグリッド */}
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-3">
-              <StatCell label="平均ゴール" value={fmt(record.avgGoals)} color="text-green-400" />
-              <StatCell label="平均アシスト" value={fmt(record.avgAssists)} color="text-blue-400" />
-              <StatCell label="平均セーブ" value={fmt(record.avgSaves)} />
-              <StatCell label="平均シュート" value={fmt(record.avgShots)} />
-              <StatCell label="決定率" value={record.avgShots > 0 ? pct(record.shotRate) : "-"} color="text-orange-400" />
-              <StatCell label="平均得点" value={fmt(record.avgScore)} />
-              <StatCell
-                label="ゴール差"
-                value={record.goalDiff > 0 ? `+${record.goalDiff}` : String(record.goalDiff)}
-                color={record.goalDiff > 0 ? "text-green-400" : record.goalDiff < 0 ? "text-red-400" : "text-gray-400"}
-              />
-              <StatCell label="試合数" value={String(record.matches)} />
-            </div>
-          </div>
+      {record && (
+        <div className="grid grid-cols-2 gap-3">
+          <StatCell
+            label="平均得点"
+            value={record.avgScore.toFixed(2)}
+          />
+          <StatCell
+            label="ゴール差"
+            value={record.goalDiff > 0 ? `+${record.goalDiff}` : String(record.goalDiff)}
+            color={record.goalDiff > 0 ? "text-green-400" : record.goalDiff < 0 ? "text-red-400" : "text-gray-400"}
+          />
         </div>
       )}
 
