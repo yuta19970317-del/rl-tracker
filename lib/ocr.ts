@@ -18,6 +18,21 @@ export type OcrResult = {
   rawText: string;
 };
 
+// tesseract.js をCDNから読み込む（npm bundleを回避）
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadTesseract(): Promise<{ createWorker: (...args: any[]) => Promise<any> }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any;
+  if (w.Tesseract) return w.Tesseract;
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    script.onload = () => resolve(w.Tesseract);
+    script.onerror = () => reject(new Error("tesseract.js の読み込みに失敗しました"));
+    document.head.appendChild(script);
+  });
+}
+
 // 画像を前処理: グレースケール→コントラスト強調→2値化→2倍拡大
 async function preprocessImage(blob: Blob): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -65,10 +80,8 @@ export async function recognizeScoreboard(
   const processed = await preprocessImage(image);
   onProgress?.(20);
 
-  // 数字専用ワーカー（スタッツ列用）
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const { createWorker } = await import(/* turbopackIgnore: true */ "tesseract.js");
+  // tesseract.js をCDNから動的読み込み（バンドル回避）
+  const { createWorker } = await loadTesseract();
   const numWorker = await createWorker("eng", 1, {
     logger: (m: { status: string; progress: number }) => {
       if (m.status === "recognizing text" && onProgress) {
