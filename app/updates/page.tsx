@@ -28,6 +28,39 @@ type UpdateEntry = {
 
 const UPDATES: UpdateEntry[] = [
   {
+    version: "v1.11",
+    date: "2026/06/19",
+    title: "全ページにプレイヤーアイコン表示",
+    description:
+      "試合一覧・ランキング・ペア成績ページのプレイヤー名横に設定済みアバターアイコンが表示されるようになりました。未設定の場合はイニシャルが表示されます。",
+    badge: "UI",
+    icon: "🖼️",
+    iconColor: "text-purple-400",
+    iconBg: "bg-purple-900/40",
+  },
+  {
+    version: "v1.10",
+    date: "2026/06/19",
+    title: "成績ボタンを大きく見やすく改善",
+    description:
+      "プレイヤー一覧の成績ボタンをオレンジ背景・白文字の目立つデザインに変更しました。",
+    badge: "UI",
+    icon: "🎨",
+    iconColor: "text-orange-400",
+    iconBg: "bg-orange-900/40",
+  },
+  {
+    version: "v1.9",
+    date: "2026/06/19",
+    title: "個人成績ページ ヒーローバナーデザイン",
+    description:
+      "個人成績ページをリニューアル。大きなアバター・称号バッジ（ゴール王・勝率王など）・勝敗サマリーを上部に表示するヒーローバナー型デザインになりました。",
+    badge: "UI",
+    icon: "⭐",
+    iconColor: "text-amber-400",
+    iconBg: "bg-amber-900/40",
+  },
+  {
     version: "v1.8",
     date: "2026/06/19",
     title: "個人成績へのクイックリンク",
