@@ -11,9 +11,9 @@ import type { PlayerRecord } from "@/types";
 function getTitleKey(record: PlayerRecord, allRecords: PlayerRecord[]): TitleKey {
   if (allRecords.length === 0) return "default";
 
-  const active = allRecords.filter((r) => r.matches >= 1);
+  const active = allRecords.filter((r) => r.matches >= 10);
   const minWin = active.length > 0 ? Math.min(...active.map((r) => r.winRate)) : Infinity;
-  if (record.winRate === minWin && active.length > 1 && record.matches >= 1) return "plague-god";
+  if (record.winRate === minWin && active.length > 1 && record.matches >= 10) return "plague-god";
 
   const maxGoals = Math.max(...allRecords.map((r) => r.avgGoals));
   const maxWin = Math.max(...allRecords.map((r) => r.winRate));
