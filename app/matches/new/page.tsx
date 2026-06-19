@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/contexts/AppContext";
 import { validateMatch } from "@/lib/validation";
+import { ScoreboardImport } from "@/components/ui/ScoreboardImport";
 import type { PlayerStats } from "@/types";
+import type { OcrPlayerResult } from "@/lib/ocr";
 
 const STAT_FIELDS: { key: keyof Omit<PlayerStats, "playerId">; label: string }[] = [
   { key: "score", label: "得点" },
@@ -16,11 +18,11 @@ const STAT_FIELDS: { key: keyof Omit<PlayerStats, "playerId">; label: string }[]
 
 type Side = "w1" | "w2" | "l1" | "l2";
 
-const SIDES: { key: Side; label: string; team: "winner" | "loser" }[] = [
-  { key: "w1", label: "勝者 1", team: "winner" },
-  { key: "w2", label: "勝者 2", team: "winner" },
-  { key: "l1", label: "敗者 1", team: "loser" },
-  { key: "l2", label: "敗者 2", team: "loser" },
+const SIDES: { key: Side; team: "winner" | "loser" }[] = [
+  { key: "w1", team: "winner" },
+  { key: "w2", team: "winner" },
+  { key: "l1", team: "loser" },
+  { key: "l2", team: "loser" },
 ];
 
 function emptyStats(playerId: string): PlayerStats {
@@ -40,6 +42,7 @@ export default function NewMatchPage() {
   const [memo, setMemo] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   function handleSelectPlayer(side: Side, playerId: string) {
     setSelected((prev) => ({ ...prev, [side]: playerId }));
@@ -56,6 +59,44 @@ export default function NewMatchPage() {
       .filter(([k, v]) => k !== currentSide && v)
       .map(([, v]) => v);
     return activePlayers.filter((p) => !usedIds.includes(p.id));
+  }
+
+  // OCR結果をフォームに反映
+  function handleOcrApply(results: OcrPlayerResult[]) {
+    const winners = results.filter((r) => r.team === "winner");
+    const losers = results.filter((r) => r.team === "loser");
+    // チーム判定できない場合は前半2人をWIN、後半2人をLOSEとして扱う
+    const all = results.length === 4 && winners.length === 0 && losers.length === 0
+      ? results
+      : null;
+
+    const get = (team: "winner" | "loser", idx: number): OcrPlayerResult | undefined => {
+      if (all) return team === "winner" ? all[idx] : all[2 + idx];
+      return team === "winner" ? winners[idx] : losers[idx];
+    };
+
+    const newSelected = { ...selected };
+    const newStats = { ...stats };
+
+    SIDES.forEach(({ key, team }, i) => {
+      const idx = team === "winner" ? (key === "w1" ? 0 : 1) : (key === "l1" ? 0 : 1);
+      const r = get(team, idx);
+      if (!r) return;
+
+      const playerId = r.matchedPlayerId ?? "";
+      newSelected[key] = playerId;
+      newStats[key] = {
+        playerId,
+        score: r.score,
+        goals: r.goals,
+        assists: r.assists,
+        saves: r.saves,
+        shots: r.shots,
+      };
+    });
+
+    setSelected(newSelected);
+    setStats(newStats);
   }
 
   async function handleSubmit() {
@@ -86,7 +127,23 @@ export default function NewMatchPage() {
 
   return (
     <div className="space-y-5 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold">試合入力</h1>
+      {showImport && (
+        <ScoreboardImport
+          players={activePlayers}
+          onClose={() => setShowImport(false)}
+          onApply={handleOcrApply}
+        />
+      )}
+
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">試合入力</h1>
+        <button
+          onClick={() => setShowImport(true)}
+          className="flex items-center gap-1.5 px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-sm font-medium transition-colors"
+        >
+          <span>📸</span> スクショから入力
+        </button>
+      </div>
 
       <div className="bg-gray-900 rounded-xl p-4">
         <label className="block text-sm text-gray-400 mb-1">試合日</label>
