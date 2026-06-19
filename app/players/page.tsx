@@ -294,7 +294,7 @@ export default function PlayersPage() {
                     <div className="flex justify-end gap-3">
                       <Link
                         href={`/stats?player=${p.id}`}
-                        className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition-colors"
+                        className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white transition-colors whitespace-nowrap"
                       >
                         📊 成績
                       </Link>
