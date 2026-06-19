@@ -66,7 +66,9 @@ export async function recognizeScoreboard(
   onProgress?.(20);
 
   // 数字専用ワーカー（スタッツ列用）
-  const { createWorker } = await import("tesseract.js");
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const { createWorker } = await import(/* turbopackIgnore: true */ "tesseract.js");
   const numWorker = await createWorker("eng", 1, {
     logger: (m) => {
       if (m.status === "recognizing text" && onProgress) {
