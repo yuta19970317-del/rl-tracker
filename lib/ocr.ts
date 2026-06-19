@@ -70,7 +70,7 @@ export async function recognizeScoreboard(
   // @ts-ignore
   const { createWorker } = await import(/* turbopackIgnore: true */ "tesseract.js");
   const numWorker = await createWorker("eng", 1, {
-    logger: (m) => {
+    logger: (m: { status: string; progress: number }) => {
       if (m.status === "recognizing text" && onProgress) {
         onProgress(20 + Math.round(m.progress * 60));
       }
