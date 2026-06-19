@@ -94,16 +94,6 @@ export async function recognizeScoreboard(
 }
 
 function parseScoreboard(numText: string, fullText: string, players: Player[]): OcrPlayerResult[] {
-  // チーム判定: fullTextから「ブルー」「オレンジ」の位置で勝者/敗者を判定
-  const lowerFull = fullText.toLowerCase();
-  const bluePos = lowerFull.search(/blue|ブルー/);
-  const orangePos = lowerFull.search(/orange|オレンジ/);
-
-  // ブルー=勝者 or オレンジ=勝者 を 「勝者」キーワードで判定
-  const winnerIsBlue = fullText.search(/勝者[\s\S]{0,30}(blue|ブルー)/i) !== -1 ||
-    (bluePos !== -1 && orangePos !== -1 && bluePos < orangePos &&
-      fullText.search(/勝者/) < orangePos);
-
   // numTextから数字行を抽出（5個以上の数字グループがある行）
   const numLines = numText.split("\n")
     .map((l) => l.trim())
@@ -111,6 +101,28 @@ function parseScoreboard(numText: string, fullText: string, players: Player[]): 
       const nums = l.match(/\d+/g);
       return nums && nums.length >= 5;
     });
+
+  // チーム判定: numTextの単独数字行（チームスコア）を探して比較
+  // 例: "6" (ブルーの得点) vs "4" (オレンジの得点)
+  const singleNums = numText.split("\n")
+    .map((l) => l.trim())
+    .filter((l) => /^\d{1,2}$/.test(l))
+    .map(Number);
+
+  let winnerIsFirst = true; // デフォルト: 最初のチーム(ブルー)=WIN
+  if (singleNums.length >= 2) {
+    // 最初の単独数字がブルーのスコア、次がオレンジのスコア
+    winnerIsFirst = singleNums[0] >= singleNums[1];
+  } else {
+    // フォールバック: fullTextの「勝者」位置で判定
+    const lowerFull = fullText.toLowerCase();
+    const bluePos = lowerFull.search(/blue|ブルー/);
+    const orangePos = lowerFull.search(/orange|オレンジ/);
+    const winnerPos = fullText.search(/勝者/);
+    if (winnerPos !== -1 && bluePos !== -1 && orangePos !== -1) {
+      winnerIsFirst = Math.abs(winnerPos - bluePos) < Math.abs(winnerPos - orangePos);
+    }
+  }
 
   // fullTextからプレイヤー名候補を抽出（登録プレイヤー名でマッチング）
   const results: OcrPlayerResult[] = [];
@@ -120,14 +132,10 @@ function parseScoreboard(numText: string, fullText: string, players: Player[]): 
     // 先頭から: 得点, ゴール, アシスト, セーブ, シュート (, PING)
     const [score = 0, goals = 0, assists = 0, saves = 0, shots = 0] = nums;
 
-    // チーム判定: ブルーが勝者なら i<2 が winner
+    // チーム判定
     let team: "winner" | "loser" | null = null;
     if (numLines.length >= 4) {
-      if (winnerIsBlue) {
-        team = i < 2 ? "winner" : "loser";
-      } else {
-        team = i < 2 ? "loser" : "winner";
-      }
+      team = (i < 2) === winnerIsFirst ? "winner" : "loser";
     }
 
     // プレイヤー名をfullTextの対応行から探す
