@@ -88,6 +88,7 @@ export default function RankingsPage() {
       <EkibyoCard
         records={allRecords}
         players={players}
+        matches={matches}
         minMatches={minMatches}
       />
 

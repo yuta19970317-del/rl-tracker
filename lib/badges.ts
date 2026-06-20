@@ -1,4 +1,5 @@
 import type { Match, Player, PlayerRecord, PairRecord } from "@/types";
+import { getConsecutiveLosses, getCurrentPlagueGods } from "@/lib/plague";
 
 export type BadgeCategory = "attack" | "support" | "defense" | "streak" | "pair" | "plague";
 
@@ -14,7 +15,7 @@ export type Badge = {
 export type EarnedBadge = Badge & { detail?: string };
 
 export const BADGE_DEFS: Badge[] = [
-  { id: "plague-god",    label: "疫病神",        emoji: "☠️",   category: "plague",  description: "10試合以上の中で勝率が最も低い",              priority: 1  },
+  { id: "plague-god",    label: "疫病神",        emoji: "☠️",   category: "plague",  description: "現在3連敗以上かつ最長連敗中",                 priority: 1  },
   { id: "cold-streak",   label: "沼り中",        emoji: "📉",   category: "streak",  description: "直近3連敗以上が続いている",                   priority: 3  },
   { id: "win-king",      label: "勝率王",        emoji: "👑",   category: "streak",  description: "5試合以上の中で勝率1位",                       priority: 4  },
   { id: "hat-trick",     label: "ハットトリック", emoji: "⚽",   category: "attack",  description: "1試合で3ゴール以上を達成",                     priority: 5  },
@@ -59,14 +60,13 @@ export function getPlayerBadges(
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // ── ☠️ 疫病神 ─────────────────────────────────────────────────
-  const active10 = allRecords.filter((r) => r.matches >= 10);
-  const plagueGodIds: string[] = [];
-  if (active10.length > 1) {
-    const minWin = Math.min(...active10.map((r) => r.winRate));
-    active10.filter((r) => r.winRate === minWin).forEach((r) => plagueGodIds.push(r.playerId));
-    if (record.matches >= 10 && plagueGodIds.includes(playerId)) {
-      earned.push({ ...def("plague-god"), detail: `勝率 ${(record.winRate * 100).toFixed(1)}%` });
-    }
+  // 新定義: 現在3連敗以上 かつ 全プレイヤー中で最長連敗
+  const currentPlagues = getCurrentPlagueGods(players, matches);
+  const plagueGodIds = currentPlagues.map((x) => x.player.id);
+  const myStreak = getConsecutiveLosses(playerId, matches);
+  const maxPlague = currentPlagues[0]?.streak ?? 0;
+  if (myStreak >= 3 && myStreak === maxPlague) {
+    earned.push({ ...def("plague-god"), detail: `現在${myStreak}連敗中` });
   }
 
   // ── 📉 沼り中 ─────────────────────────────────────────────────
