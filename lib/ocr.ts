@@ -146,8 +146,12 @@ function parseScoreboard(numText: string, fullText: string, players: Player[]): 
 
   numLines.slice(0, 4).forEach((line, i) => {
     const nums = (line.match(/\d+/g) ?? []).map(Number);
-    // 先頭から: 得点, ゴール, アシスト, セーブ, シュート (, PING)
-    const [score = 0, goals = 0, assists = 0, saves = 0, shots = 0] = nums;
+
+    // スコア（得点）は通常100以上。先頭に余分な小さい数値が混入した場合を補正する。
+    // 例: [1, 436, 2, 1, 0, 3] → scoreIdx=1 → score=436, G=2, A=1, Sv=0, Sh=3
+    const scoreIdx = nums.findIndex((n) => n >= 100);
+    const aligned = scoreIdx > 0 ? nums.slice(scoreIdx) : nums;
+    const [score = 0, goals = 0, assists = 0, saves = 0, shots = 0] = aligned;
 
     // チーム判定
     let team: "winner" | "loser" | null = null;
