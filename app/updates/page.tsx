@@ -28,6 +28,17 @@ type UpdateEntry = {
 
 const UPDATES: UpdateEntry[] = [
   {
+    version: "v1.15",
+    date: "2026/06/20",
+    title: "OCR 範囲選択トリミング機能",
+    description:
+      "スコアボード読み取り時に「スコアボード部分だけをドラッグで選択してからOCR」できるようになりました。ゲームのUI要素や背景をノイズとして除外できるため、数値の認識精度が大幅に向上します。選択範囲は暗いオーバーレイでわかりやすく表示されます。選択せずにそのまま読み取ることも従来通り可能です。",
+    badge: "FIX",
+    icon: "✂️",
+    iconColor: "text-cyan-400",
+    iconBg: "bg-cyan-900/40",
+  },
+  {
     version: "v1.14",
     date: "2026/06/20",
     title: "個人成績 バッジシステム",

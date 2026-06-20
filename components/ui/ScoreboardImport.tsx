@@ -11,6 +11,7 @@ type Props = {
 };
 
 type EditableRow = OcrPlayerResult & { _idx: number };
+type CropRect = { x: number; y: number; w: number; h: number };
 
 export function ScoreboardImport({ players, onClose, onApply }: Props) {
   const [image, setImage] = useState<string | null>(null);
@@ -23,6 +24,90 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
   const [showRaw, setShowRaw] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // ── クロップ選択 ──────────────────────────────────────────────
+  const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const imgWrapRef = useRef<HTMLDivElement>(null);
+
+  function getRatio(clientX: number, clientY: number): { x: number; y: number } {
+    const el = imgWrapRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const r = el.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(1, (clientX - r.left) / r.width)),
+      y: Math.max(0, Math.min(1, (clientY - r.top) / r.height)),
+    };
+  }
+
+  function onMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    const pos = getRatio(e.clientX, e.clientY);
+    setDragStart(pos);
+    setIsDragging(true);
+    setCropRect(null);
+  }
+
+  function onMouseMove(e: React.MouseEvent) {
+    if (!isDragging || !dragStart) return;
+    const pos = getRatio(e.clientX, e.clientY);
+    setCropRect({
+      x: Math.min(dragStart.x, pos.x),
+      y: Math.min(dragStart.y, pos.y),
+      w: Math.abs(pos.x - dragStart.x),
+      h: Math.abs(pos.y - dragStart.y),
+    });
+  }
+
+  function onMouseUp() {
+    setIsDragging(false);
+    setDragStart(null);
+  }
+
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    const pos = getRatio(t.clientX, t.clientY);
+    setDragStart(pos);
+    setIsDragging(true);
+    setCropRect(null);
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (!isDragging || !dragStart) return;
+    const t = e.touches[0];
+    const pos = getRatio(t.clientX, t.clientY);
+    setCropRect({
+      x: Math.min(dragStart.x, pos.x),
+      y: Math.min(dragStart.y, pos.y),
+      w: Math.abs(pos.x - dragStart.x),
+      h: Math.abs(pos.y - dragStart.y),
+    });
+  }
+
+  // ── 画像トリミング ────────────────────────────────────────────
+  async function getCroppedBlob(): Promise<Blob> {
+    if (!imageBlob || !cropRect || cropRect.w < 0.02 || cropRect.h < 0.02) return imageBlob!;
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(imageBlob);
+      img.onload = () => {
+        const sx = Math.round(cropRect.x * img.naturalWidth);
+        const sy = Math.round(cropRect.y * img.naturalHeight);
+        const sw = Math.round(cropRect.w * img.naturalWidth);
+        const sh = Math.round(cropRect.h * img.naturalHeight);
+        const canvas = document.createElement("canvas");
+        canvas.width = sw;
+        canvas.height = sh;
+        canvas.getContext("2d")!.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        URL.revokeObjectURL(url);
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  // ── クリップボード貼り付け ────────────────────────────────────
   const handlePaste = useCallback((e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -35,6 +120,7 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
         setOcr(null);
         setRows([]);
         setError(null);
+        setCropRect(null);
         break;
       }
     }
@@ -53,16 +139,19 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
     setOcr(null);
     setRows([]);
     setError(null);
+    setCropRect(null);
     e.target.value = "";
   }
 
+  // ── OCR実行 ───────────────────────────────────────────────────
   async function handleRecognize() {
     if (!imageBlob) return;
     setRunning(true);
     setProgress(0);
     setError(null);
     try {
-      const result = await recognizeScoreboard(imageBlob, players, setProgress);
+      const blob = await getCroppedBlob();
+      const result = await recognizeScoreboard(blob, players, setProgress);
       setOcr(result);
       setRows(result.players.map((p, i) => ({ ...p, _idx: i })));
     } catch (err) {
@@ -77,7 +166,6 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
       prev.map((r) => {
         if (r._idx !== idx) return r;
         const updated = { ...r, ...patch };
-        // プレイヤー選択変更時にmatchedPlayerIdも更新
         if (patch.matchedPlayerId !== undefined) {
           const p = players.find((pl) => pl.id === patch.matchedPlayerId);
           updated.name = p?.name ?? updated.name;
@@ -104,6 +192,7 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
     onClose();
   }
 
+  const hasCrop = cropRect && cropRect.w > 0.02 && cropRect.h > 0.02;
   const statKeys = ["score", "goals", "assists", "saves", "shots"] as const;
   const statLabels = { score: "得点", goals: "G", assists: "A", saves: "Sv", shots: "Sh" };
 
@@ -116,31 +205,105 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
           <button onClick={onClose} className="text-gray-500 hover:text-white text-xl leading-none">×</button>
         </div>
 
-        {/* Step 1 */}
+        {/* Step 1: 画像貼り付け */}
         <div className="space-y-2">
           <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Step 1 — スクショを貼り付け</p>
-          <div
-            className={`relative rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors min-h-[120px] ${
-              image ? "border-orange-500/60 bg-black" : "border-gray-600 hover:border-gray-400 bg-gray-800/40"
-            }`}
-            onClick={() => !image && fileRef.current?.click()}
-          >
-            {image ? (
-              <img src={image} alt="pasted" className="max-w-full max-h-48 rounded-lg object-contain" />
-            ) : (
+
+          {!image ? (
+            <div
+              className="relative rounded-xl border-2 border-dashed border-gray-600 hover:border-gray-400 bg-gray-800/40 flex flex-col items-center justify-center cursor-pointer transition-colors min-h-[120px]"
+              onClick={() => fileRef.current?.click()}
+            >
               <div className="text-center py-5 select-none">
                 <p className="text-3xl mb-2">⌨️</p>
                 <p className="text-white font-semibold">Ctrl + V で貼り付け</p>
                 <p className="text-gray-500 text-xs mt-1">または下のボタンからファイル選択</p>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            /* 画像 + クロップ選択UI */
+            <div className="space-y-1.5">
+              <p className="text-xs text-orange-400 font-medium">
+                {hasCrop ? "✅ 範囲選択済み — 再選択するにはドラッグ" : "📐 スコアボード部分をドラッグで範囲選択（省略可）"}
+              </p>
+              <div
+                ref={imgWrapRef}
+                className="relative rounded-xl overflow-hidden border border-gray-700 select-none"
+                style={{ cursor: "crosshair", touchAction: "none" }}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={onMouseUp}
+                onMouseLeave={onMouseUp}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onMouseUp}
+              >
+                <img
+                  src={image}
+                  alt="pasted"
+                  className="w-full h-auto block max-h-56 object-contain"
+                  draggable={false}
+                />
+
+                {/* 選択外を暗くするオーバーレイ */}
+                {hasCrop && cropRect && (
+                  <>
+                    {/* 上 */}
+                    <div className="absolute inset-x-0 top-0 bg-black/50 pointer-events-none" style={{ height: `${cropRect.y * 100}%` }} />
+                    {/* 下 */}
+                    <div className="absolute inset-x-0 bottom-0 bg-black/50 pointer-events-none" style={{ height: `${(1 - cropRect.y - cropRect.h) * 100}%` }} />
+                    {/* 左 */}
+                    <div className="absolute bg-black/50 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, height: `${cropRect.h * 100}%`, left: 0, width: `${cropRect.x * 100}%` }} />
+                    {/* 右 */}
+                    <div className="absolute bg-black/50 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, height: `${cropRect.h * 100}%`, right: 0, width: `${(1 - cropRect.x - cropRect.w) * 100}%` }} />
+                    {/* 選択枠 */}
+                    <div
+                      className="absolute border-2 border-orange-400 pointer-events-none"
+                      style={{
+                        left: `${cropRect.x * 100}%`,
+                        top: `${cropRect.y * 100}%`,
+                        width: `${cropRect.w * 100}%`,
+                        height: `${cropRect.h * 100}%`,
+                      }}
+                    />
+                  </>
+                )}
+
+                {/* ドラッグ中の仮枠 */}
+                {isDragging && cropRect && !hasCrop && (
+                  <div
+                    className="absolute border border-dashed border-orange-300 pointer-events-none"
+                    style={{
+                      left: `${cropRect.x * 100}%`,
+                      top: `${cropRect.y * 100}%`,
+                      width: `${cropRect.w * 100}%`,
+                      height: `${cropRect.h * 100}%`,
+                    }}
+                  />
+                )}
+              </div>
+
+              {hasCrop && (
+                <button
+                  type="button"
+                  onClick={() => setCropRect(null)}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  × 範囲選択をリセット（全体を使用）
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button onClick={() => fileRef.current?.click()} className="flex-1 py-2 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition-colors">
               ファイルを選択
             </button>
             {image && (
-              <button onClick={() => { setImage(null); setImageBlob(null); setOcr(null); setRows([]); }} className="py-2 px-3 text-sm bg-gray-800 hover:bg-red-900/50 rounded-lg border border-gray-700 text-gray-400 hover:text-red-400 transition-colors">
+              <button
+                onClick={() => { setImage(null); setImageBlob(null); setOcr(null); setRows([]); setCropRect(null); }}
+                className="py-2 px-3 text-sm bg-gray-800 hover:bg-red-900/50 rounded-lg border border-gray-700 text-gray-400 hover:text-red-400 transition-colors"
+              >
                 クリア
               </button>
             )}
@@ -148,12 +311,20 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
         </div>
 
-        {/* Step 2 */}
+        {/* Step 2: OCR実行 */}
         {image && (
           <div className="space-y-2">
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Step 2 — 解析</p>
-            <button onClick={handleRecognize} disabled={running} className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 rounded-lg font-bold transition-colors">
-              {running ? `解析中... ${progress}%` : "🔍 スタッツを読み取る"}
+            <button
+              onClick={handleRecognize}
+              disabled={running}
+              className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 rounded-lg font-bold transition-colors"
+            >
+              {running
+                ? `解析中... ${progress}%`
+                : hasCrop
+                ? "🔍 選択範囲を読み取る"
+                : "🔍 スタッツを読み取る（全体）"}
             </button>
             {running && (
               <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
@@ -182,9 +353,7 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
                       "bg-gray-800 border-gray-700"
                     }`}
                   >
-                    {/* 行ヘッダー: プレイヤー選択 + チーム + 削除 */}
                     <div className="flex items-center gap-2">
-                      {/* チーム切り替え */}
                       <button
                         onClick={() => updateRow(r._idx, { team: r.team === "winner" ? "loser" : r.team === "loser" ? null : "winner" })}
                         className={`text-xs font-bold px-2 py-1 rounded shrink-0 ${
@@ -192,12 +361,10 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
                           r.team === "loser" ? "bg-red-700 text-white" :
                           "bg-gray-700 text-gray-400"
                         }`}
-                        title="クリックでチームを切り替え"
                       >
                         {r.team === "winner" ? "WIN" : r.team === "loser" ? "LOSE" : "?"}
                       </button>
 
-                      {/* プレイヤー選択 */}
                       <select
                         value={r.matchedPlayerId ?? ""}
                         onChange={(e) => updateRow(r._idx, { matchedPlayerId: e.target.value || null })}
@@ -209,11 +376,9 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
                         ))}
                       </select>
 
-                      {/* 削除 */}
                       <button onClick={() => removeRow(r._idx)} className="text-gray-600 hover:text-red-400 text-lg leading-none shrink-0">×</button>
                     </div>
 
-                    {/* スタッツ入力 */}
                     <div className="grid grid-cols-5 gap-1.5">
                       {statKeys.map((k) => (
                         <div key={k} className="text-center">
@@ -234,12 +399,10 @@ export function ScoreboardImport({ players, onClose, onApply }: Props) {
               </div>
             )}
 
-            {/* 行追加 */}
             <button onClick={addRow} className="w-full py-2 text-sm text-gray-400 hover:text-white border border-dashed border-gray-700 hover:border-gray-500 rounded-lg transition-colors">
               + プレイヤーを追加
             </button>
 
-            {/* RAW テキスト */}
             {ocr && (
               <>
                 <button onClick={() => setShowRaw((v) => !v)} className="text-xs text-gray-600 hover:text-gray-400">
