@@ -28,6 +28,17 @@ type UpdateEntry = {
 
 const UPDATES: UpdateEntry[] = [
   {
+    version: "v1.13",
+    date: "2026/06/20",
+    title: "OCR読み取り精度改善",
+    description:
+      "スコアボード自動読み取りの前処理を強化しました。アップスケールを2倍→3倍に拡大し、コントラスト強調（1.8倍ストレッチ）と閾値を120→150に変更。RLの白文字をより正確に検出できるようになりました。",
+    badge: "FIX",
+    icon: "📸",
+    iconColor: "text-blue-400",
+    iconBg: "bg-blue-900/40",
+  },
+  {
     version: "v1.12",
     date: "2026/06/19",
     title: "個人成績 ゲームキャラクターカードデザイン",

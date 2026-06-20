@@ -33,13 +33,13 @@ async function loadTesseract(): Promise<{ createWorker: (...args: any[]) => Prom
   });
 }
 
-// 画像を前処理: グレースケール→コントラスト強調→2値化→2倍拡大
+// 画像を前処理: グレースケール→コントラスト強調→2値化→3倍拡大
 async function preprocessImage(blob: Blob): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(blob);
     img.onload = () => {
-      const scale = 2;
+      const scale = 3;
       const canvas = document.createElement("canvas");
       canvas.width = img.naturalWidth * scale;
       canvas.height = img.naturalHeight * scale;
@@ -55,8 +55,10 @@ async function preprocessImage(blob: Blob): Promise<Blob> {
       for (let i = 0; i < data.length; i += 4) {
         // グレースケール化
         const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        // コントラスト強調: 閾値120以上を白、未満を黒に2値化
-        const val = gray > 120 ? 255 : 0;
+        // コントラスト強調: 1.8倍ストレッチ（RLの白文字を際立たせる）
+        const enhanced = Math.min(255, Math.max(0, (gray - 80) * 1.8 + 80));
+        // 閾値150以上を白、未満を黒に2値化
+        const val = enhanced > 150 ? 255 : 0;
         data[i] = data[i + 1] = data[i + 2] = val;
         data[i + 3] = 255;
       }
