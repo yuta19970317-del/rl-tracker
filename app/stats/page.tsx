@@ -3,9 +3,11 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/contexts/AppContext";
-import { calcPlayerRecords } from "@/lib/aggregation";
+import { calcPlayerRecords, calcPairRecords } from "@/lib/aggregation";
 import { PlayerCard } from "@/components/ui/PlayerCard";
 import type { TitleKey, PlayerCardData } from "@/components/ui/PlayerCard";
+import { BadgeSection } from "@/components/ui/BadgeSection";
+import { getPlayerBadges } from "@/lib/badges";
 import type { PlayerRecord } from "@/types";
 
 function getTitleKey(record: PlayerRecord, allRecords: PlayerRecord[]): TitleKey {
@@ -73,8 +75,12 @@ function StatsContent() {
   const [selectedId, setSelectedId] = useState(searchParams.get("player") ?? "");
 
   const records = calcPlayerRecords(matches, players);
+  const pairRecords = calcPairRecords(matches);
   const record = records.find((r) => r.playerId === selectedId);
   const player = players.find((p) => p.id === selectedId);
+  const badges = selectedId
+    ? getPlayerBadges(selectedId, records, matches, players, pairRecords)
+    : [];
 
   let cardData: PlayerCardData | null = null;
   if (record && player) {
@@ -118,6 +124,12 @@ function StatsContent() {
       {loading && <p className="text-gray-500">読み込み中...</p>}
 
       {cardData && <PlayerCard player={cardData} />}
+
+      {badges.length > 0 && (
+        <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+          <BadgeSection earned={badges} />
+        </div>
+      )}
 
       {record && (
         <div className="grid grid-cols-2 gap-3">
