@@ -64,4 +64,9 @@ create policy "public delete match_players" on match_players for delete using (t
 alter table app_settings enable row level security;
 
 create policy "public read app_settings" on app_settings for select using (true);
+create policy "public insert app_settings" on app_settings for insert with check (true);
 create policy "public update app_settings" on app_settings for update using (true);
+
+insert into app_settings (key, value)
+values ('plague_excluded', '[]')
+on conflict (key) do nothing;

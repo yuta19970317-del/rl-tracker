@@ -46,7 +46,7 @@ export default function RankingsPage() {
   const { minMatches, saving: settingSaving, saveMinMatches } = useSettings();
   const [statKey, setStatKey] = useState<StatKey>("totalGoals");
 
-  const { isTarget, toggle, saving: targetSaving } = usePlagueTargets();
+  const { isTarget, toggle, saving: targetSaving, error: targetError } = usePlagueTargets();
 
   const allRecords = calcPlayerRecords(matches, players);
   const pairRecords = calcPairRecords(matches);
@@ -99,6 +99,7 @@ export default function RankingsPage() {
         isTarget={isTarget}
         onToggle={toggle}
         saving={targetSaving}
+        error={targetError}
       />
 
       {/* 称号カード */}

@@ -9,6 +9,7 @@ export function usePlagueTargets() {
   const [excludedIds, setExcludedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSetting(SETTING_KEY).then((val) => {
@@ -24,9 +25,14 @@ export function usePlagueTargets() {
       ? excludedIds.filter((id) => id !== playerId)
       : [...excludedIds, playerId];
     setExcludedIds(next);
+    setError(null);
     setSaving(true);
     try {
       await upsertSetting(SETTING_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error("plague_excluded save failed:", e);
+      setError("保存に失敗しました");
+      setExcludedIds(excludedIds); // rollback
     } finally {
       setSaving(false);
     }
@@ -37,5 +43,5 @@ export function usePlagueTargets() {
     [excludedIds]
   );
 
-  return { excludedIds, isTarget, toggle, loading, saving };
+  return { excludedIds, isTarget, toggle, loading, saving, error };
 }
