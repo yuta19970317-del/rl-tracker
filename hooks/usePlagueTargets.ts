@@ -12,19 +12,27 @@ export function usePlagueTargets() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetchSetting(SETTING_KEY).then((val) => {
+      if (cancelled) return;
       if (val) {
         try { setExcludedIds(JSON.parse(val)); } catch { /* ignore */ }
       }
       setLoading(false);
     });
+    return () => { cancelled = true; };
   }, []);
 
   const toggle = useCallback(async (playerId: string) => {
-    const next = excludedIds.includes(playerId)
-      ? excludedIds.filter((id) => id !== playerId)
-      : [...excludedIds, playerId];
-    setExcludedIds(next);
+    // 関数型更新で最新の state を使う
+    let next: string[] = [];
+    setExcludedIds((prev) => {
+      next = prev.includes(playerId)
+        ? prev.filter((id) => id !== playerId)
+        : [...prev, playerId];
+      return next;
+    });
+
     setError(null);
     setSaving(true);
     try {
@@ -32,11 +40,11 @@ export function usePlagueTargets() {
     } catch (e) {
       console.error("plague_excluded save failed:", e);
       setError("保存に失敗しました");
-      setExcludedIds(excludedIds); // rollback
+      // ロールバックしない（UIはそのまま、次回リロードで DB 値に戻る）
     } finally {
       setSaving(false);
     }
-  }, [excludedIds]);
+  }, []);
 
   const isTarget = useCallback(
     (playerId: string) => !excludedIds.includes(playerId),

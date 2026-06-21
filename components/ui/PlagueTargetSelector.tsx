@@ -79,6 +79,7 @@ export function PlagueTargetSelector({ players, records, isTarget, onToggle, sav
                   type="checkbox"
                   checked={targeted}
                   onChange={() => onToggle(p.id)}
+                  onClick={(e) => e.stopPropagation()}
                   className="w-4 h-4 accent-red-600 flex-shrink-0"
                 />
                 <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={28} />
