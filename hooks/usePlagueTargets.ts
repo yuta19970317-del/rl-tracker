@@ -1,22 +1,30 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchSetting, upsertSetting } from "@/lib/db";
 
 const SETTING_KEY = "plague_excluded";
 
 export function usePlagueTargets() {
   const [excludedIds, setExcludedIds] = useState<string[]>([]);
+  const excludedIdsRef = useRef<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ref を state と同期させる
+  excludedIdsRef.current = excludedIds;
 
   useEffect(() => {
     let cancelled = false;
     fetchSetting(SETTING_KEY).then((val) => {
       if (cancelled) return;
       if (val) {
-        try { setExcludedIds(JSON.parse(val)); } catch { /* ignore */ }
+        try {
+          const parsed = JSON.parse(val);
+          setExcludedIds(parsed);
+          excludedIdsRef.current = parsed;
+        } catch { /* ignore */ }
       }
       setLoading(false);
     });
@@ -24,14 +32,15 @@ export function usePlagueTargets() {
   }, []);
 
   const toggle = useCallback(async (playerId: string) => {
-    // 関数型更新で最新の state を使う
-    let next: string[] = [];
-    setExcludedIds((prev) => {
-      next = prev.includes(playerId)
-        ? prev.filter((id) => id !== playerId)
-        : [...prev, playerId];
-      return next;
-    });
+    // ref から常に最新の値を取得
+    const current = excludedIdsRef.current;
+    const next = current.includes(playerId)
+      ? current.filter((id) => id !== playerId)
+      : [...current, playerId];
+
+    // 即座に UI 反映
+    setExcludedIds(next);
+    excludedIdsRef.current = next;
 
     setError(null);
     setSaving(true);
@@ -40,7 +49,6 @@ export function usePlagueTargets() {
     } catch (e) {
       console.error("plague_excluded save failed:", e);
       setError("保存に失敗しました");
-      // ロールバックしない（UIはそのまま、次回リロードで DB 値に戻る）
     } finally {
       setSaving(false);
     }
