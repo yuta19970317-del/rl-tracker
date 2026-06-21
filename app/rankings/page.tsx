@@ -7,6 +7,8 @@ import { useSettings } from "@/hooks/useSettings";
 import { calcPlayerRecords, calcPairRecords } from "@/lib/aggregation";
 import { EkibyoCard } from "@/components/ui/EkibyoCard";
 import { TitleCards } from "@/components/ui/TitleCards";
+import { PlagueTargetSelector } from "@/components/ui/PlagueTargetSelector";
+import { usePlagueTargets } from "@/hooks/usePlagueTargets";
 import type { PlayerRecord } from "@/types";
 
 function pct(n: number) { return (n * 100).toFixed(1) + "%"; }
@@ -44,10 +46,13 @@ export default function RankingsPage() {
   const { minMatches, saving: settingSaving, saveMinMatches } = useSettings();
   const [statKey, setStatKey] = useState<StatKey>("totalGoals");
 
+  const { isTarget, toggle, saving: targetSaving } = usePlagueTargets();
+
   const allRecords = calcPlayerRecords(matches, players);
   const pairRecords = calcPairRecords(matches);
 
   const records = allRecords.filter((r) => r.matches >= minMatches);
+  const plagueRecords = allRecords.filter((r) => r.matches >= minMatches && isTarget(r.playerId));
   const filteredPairs = pairRecords.filter((r) => r.matches >= minMatches);
 
   const name = (id: string) => players.find((p) => p.id === id)?.name ?? "?";
@@ -85,11 +90,15 @@ export default function RankingsPage() {
       {loading && <p className="text-gray-500">読み込み中...</p>}
 
       {/* 疫病神カード */}
-      <EkibyoCard
-        records={allRecords}
+      <EkibyoCard records={plagueRecords} players={players} />
+
+      {/* 疫病神対象者 */}
+      <PlagueTargetSelector
         players={players}
-        matches={matches}
-        minMatches={minMatches}
+        records={allRecords}
+        isTarget={isTarget}
+        onToggle={toggle}
+        saving={targetSaving}
       />
 
       {/* 称号カード */}

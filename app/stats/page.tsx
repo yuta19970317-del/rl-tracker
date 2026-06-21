@@ -8,19 +8,14 @@ import { PlayerCard } from "@/components/ui/PlayerCard";
 import type { TitleKey, PlayerCardData } from "@/components/ui/PlayerCard";
 import { BadgeSection } from "@/components/ui/BadgeSection";
 import { getPlayerBadges } from "@/lib/badges";
-import { getConsecutiveLosses } from "@/lib/plague";
-import type { PlayerRecord, Match } from "@/types";
+import type { PlayerRecord } from "@/types";
 
-function getTitleKey(
-  record: PlayerRecord,
-  allRecords: PlayerRecord[],
-  matches: Match[],
-  playerId: string
-): TitleKey {
+function getTitleKey(record: PlayerRecord, allRecords: PlayerRecord[]): TitleKey {
   if (allRecords.length === 0) return "default";
 
-  // 新定義: 3連敗以上 → 疫病神
-  if (getConsecutiveLosses(playerId, matches) >= 3) return "plague-god";
+  const active = allRecords.filter((r) => r.matches >= 10);
+  const minWin = active.length > 0 ? Math.min(...active.map((r) => r.winRate)) : Infinity;
+  if (record.winRate === minWin && active.length > 1 && record.matches >= 10) return "plague-god";
 
   const maxGoals = Math.max(...allRecords.map((r) => r.avgGoals));
   const maxWin = Math.max(...allRecords.map((r) => r.winRate));
@@ -89,7 +84,7 @@ function StatsContent() {
 
   let cardData: PlayerCardData | null = null;
   if (record && player) {
-    const titleKey = getTitleKey(record, records, matches, selectedId);
+    const titleKey = getTitleKey(record, records);
     cardData = {
       name: player.name,
       titleLabel: getTitleLabel(titleKey),

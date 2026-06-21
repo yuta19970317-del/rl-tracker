@@ -253,6 +253,13 @@ export async function updateSetting(key: string, value: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function upsertSetting(key: string, value: string): Promise<void> {
+  const { error } = await db()
+    .from("app_settings")
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) throw error;
+}
+
 // ---- Row converters ----
 
 function rowToPlayer(row: Record<string, unknown>): Player {

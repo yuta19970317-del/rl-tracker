@@ -28,6 +28,17 @@ type UpdateEntry = {
 
 const UPDATES: UpdateEntry[] = [
   {
+    version: "v1.17",
+    date: "2026/06/22",
+    title: "疫病神対象者チェックボックス追加",
+    description:
+      "疫病神の定義を勝率最下位（元の定義）に戻しました。ランキングページに「疫病神対象者」セクションを追加。プレイヤーごとにチェックボックスでON/OFFでき、チェックを外したプレイヤーは疫病神の計算から除外されます。設定はSupabaseに保存されます。",
+    badge: "NEW",
+    icon: "☑️",
+    iconColor: "text-red-400",
+    iconBg: "bg-red-900/40",
+  },
+  {
     version: "v1.16",
     date: "2026/06/21",
     title: "疫病神の定義を3連敗制に変更",
