@@ -47,8 +47,9 @@ export function usePlagueTargets() {
     try {
       await upsertSetting(SETTING_KEY, JSON.stringify(next));
     } catch (e) {
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
       console.error("plague_excluded save failed:", e);
-      setError("保存に失敗しました");
+      setError("保存失敗: " + msg);
     } finally {
       setSaving(false);
     }
