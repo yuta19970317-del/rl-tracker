@@ -8,14 +8,16 @@ import { PlayerCard } from "@/components/ui/PlayerCard";
 import type { TitleKey, PlayerCardData } from "@/components/ui/PlayerCard";
 import { BadgeSection } from "@/components/ui/BadgeSection";
 import { getPlayerBadges } from "@/lib/badges";
+import { usePlagueTargets } from "@/hooks/usePlagueTargets";
 import type { PlayerRecord } from "@/types";
 
-function getTitleKey(record: PlayerRecord, allRecords: PlayerRecord[]): TitleKey {
+function getTitleKey(record: PlayerRecord, allRecords: PlayerRecord[], plagueTargetIds: string[]): TitleKey {
   if (allRecords.length === 0) return "default";
 
-  const active = allRecords.filter((r) => r.matches >= 10);
+  // ランキングと同じ定義: 対象者の中で勝率最下位
+  const active = allRecords.filter((r) => r.matches >= 10 && plagueTargetIds.includes(r.playerId));
   const minWin = active.length > 0 ? Math.min(...active.map((r) => r.winRate)) : Infinity;
-  if (record.winRate === minWin && active.length > 1 && record.matches >= 10) return "plague-god";
+  if (record.winRate === minWin && active.length > 1 && record.matches >= 10 && plagueTargetIds.includes(record.playerId)) return "plague-god";
 
   const maxGoals = Math.max(...allRecords.map((r) => r.avgGoals));
   const maxWin = Math.max(...allRecords.map((r) => r.winRate));
@@ -73,6 +75,7 @@ function StatsContent() {
   const { players, matches, loading } = useApp();
   const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState(searchParams.get("player") ?? "");
+  const { excludedIds } = usePlagueTargets();
 
   const records = calcPlayerRecords(matches, players);
   const pairRecords = calcPairRecords(matches);
@@ -82,9 +85,11 @@ function StatsContent() {
     ? getPlayerBadges(selectedId, records, matches, players, pairRecords)
     : [];
 
+  const plagueTargetIds = players.map((p) => p.id).filter((id) => !excludedIds.includes(id));
+
   let cardData: PlayerCardData | null = null;
   if (record && player) {
-    const titleKey = getTitleKey(record, records);
+    const titleKey = getTitleKey(record, records, plagueTargetIds);
     cardData = {
       name: player.name,
       titleLabel: getTitleLabel(titleKey),
