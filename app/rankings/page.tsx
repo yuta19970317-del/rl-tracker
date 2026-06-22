@@ -17,21 +17,16 @@ function shotRateFmt(n: number) { return n === 0 ? "-" : pct(n); }
 
 type StatKey = keyof Pick<
   PlayerRecord,
-  "totalGoals" | "totalAssists" | "totalSaves" | "totalShots" | "shotRate" |
-  "avgScore" | "avgGoals" | "avgAssists" | "avgSaves" | "avgShots"
+  "shotRate" | "avgScore" | "avgGoals" | "avgAssists" | "avgSaves" | "avgShots"
 >;
 
 const STAT_OPTIONS: { key: StatKey; label: string; format: (n: number) => string }[] = [
-  { key: "totalGoals", label: "ゴール", format: String },
-  { key: "totalAssists", label: "アシスト", format: String },
-  { key: "totalSaves", label: "セーブ", format: String },
-  { key: "totalShots", label: "シュート", format: String },
-  { key: "shotRate", label: "シュート決定率", format: shotRateFmt },
   { key: "avgScore", label: "平均得点", format: fmt },
   { key: "avgGoals", label: "平均ゴール", format: fmt },
   { key: "avgAssists", label: "平均アシスト", format: fmt },
   { key: "avgSaves", label: "平均セーブ", format: fmt },
   { key: "avgShots", label: "平均シュート", format: fmt },
+  { key: "shotRate", label: "シュート決定率", format: shotRateFmt },
 ];
 
 function Medal({ rank }: { rank: number }) {
