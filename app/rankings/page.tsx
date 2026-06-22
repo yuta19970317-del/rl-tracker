@@ -39,7 +39,7 @@ function Medal({ rank }: { rank: number }) {
 export default function RankingsPage() {
   const { players, matches, loading } = useApp();
   const { minMatches, saving: settingSaving, saveMinMatches } = useSettings();
-  const [statKey, setStatKey] = useState<StatKey>("totalGoals");
+  const [statKey, setStatKey] = useState<StatKey>("avgGoals");
 
   const { isTarget, toggle, saving: targetSaving, error: targetError } = usePlagueTargets();
 
